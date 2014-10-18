@@ -116,7 +116,7 @@ public final class AntColony {
 
         private final double[][] readMatrixFromFile() throws IOException {
 
-                final BufferedReader br = new BufferedReader(new FileReader(new File("C:/Users/Christina/Java1-workspace/AntColonyTestMQ/src/AntColony/test.tsp")));
+                final BufferedReader br = new BufferedReader(new FileReader(new File("C:/Users/Christina/Java1-workspace/AntColonyTest/src/AntColony/test.tsp")));
 
                 final LinkedList<Record> records = new LinkedList<Record>();
 
