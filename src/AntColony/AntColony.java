@@ -116,7 +116,7 @@ public final class AntColony {
 
         private final double[][] readMatrixFromFile() throws IOException {
 
-                final BufferedReader br = new BufferedReader(new FileReader(new File("C:/Users/Christina/Java1-workspace/AntColonyTest/src/AntColony/test.tsp")));
+                final BufferedReader br = new BufferedReader(new FileReader(new File("C:/Users/Christina/Java1-workspace/AntColonyTestMQ/src/AntColony/test.tsp")));
 
                 final LinkedList<Record> records = new LinkedList<Record>();
 
@@ -142,11 +142,19 @@ public final class AntColony {
                 br.close();
 
                 final double[][] localMatrix = new double[records.size()][records.size()];
-
+                int replace = 0;
+                Location loc = new Location(41,87);
                 int rIndex = 0;
                 for (Record r : records) {
                         int hIndex = 0;
                         for (Record h : records) {
+                        		if(replace == 0) {
+                        			r.x = loc.getLatitude();
+                        			r.y = loc.getLongitude();
+                        			h.x = loc.getLatitude();
+                        			h.y = loc.getLongitude();
+                        			replace = 1;
+                        		}
                                 localMatrix[rIndex][hIndex] = calculateEuclidianDistance(r.x, r.y, h.x, h.y);
                                 hIndex++;
                         }
