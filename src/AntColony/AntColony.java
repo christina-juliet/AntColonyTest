@@ -17,7 +17,20 @@ import cern.jet.random.*;
 
 public final class AntColony {
 
-        // greedy
+    	// Create a mobile service request chris
+    	public static CpuRequest cpu = new CpuRequest("Ubuntu", 64, 1);
+    	public static Location loc = new Location(47,122);
+    	public static MobileRequest request = new MobileRequest(1,10,cpu,20,loc);
+		
+    	//Available Resources in each cloud chris
+    	public static int storage[]={500,500,500,500,500};
+    	public static String OS[] = {"Ubuntu","Ubuntu","Ubuntu","Ubuntu","Ubuntu"};
+    	public static int bitsOfOs[] = {32,64,64,64,64};
+    	public static int ramQuantity[] = {50,50,50,50,50};
+    	public static int networkBW[] = {250,250,250,250,250};
+    	public static int noOfRequests[] = {0,10,0,0,0};
+    	
+    	// greedy
         public static final double ALPHA = -0.2d;
         // rapid selection
         public static final double BETA = 9.6d;
@@ -143,7 +156,6 @@ public final class AntColony {
 
                 final double[][] localMatrix = new double[records.size()][records.size()];
                 int replace = 0;
-                Location loc = new Location(41,87);
                 int rIndex = 0;
                 for (Record r : records) {
                         int hIndex = 0;
@@ -208,7 +220,7 @@ public final class AntColony {
                         }
                 }
                 final int left = agentsSend - agentsDone;
-                System.out.println("Waiting for " + left + " agents to finish their random walk!");
+                //System.out.println("Waiting for " + left + " agents to finish their random walk!"); chris
 
                 for (int i = 0; i < left; i++) {
                         WalkedWay way = agentCompletionService.take().get();
@@ -217,15 +229,73 @@ public final class AntColony {
                                 System.out.println("Agent returned with new best distance of: " + way.distance);
                         }
                 }
+                
+                for(int i=0; i<5;i++) {
+                	bestDistance.way[i] = bestDistance.way[i+1];
+                }
+                bestDistance.way[5]=0;
 
                 threadPool.shutdownNow();
                 System.out.println("Found best so far: " + bestDistance.distance);
-                System.out.println(Arrays.toString(bestDistance.way));
-                /* Include the code to:
-                 * for(int i=1;i<=5;i++), check if bestDistance.way[i] has available resource in the table
-                 * The smallest value of i that has the resource available is the cloud that has to be allocated to this request.
-                */
-
+                //System.out.println("Optimized order of cloud#s for this request: "+Arrays.toString(bestDistance.way));
+                System.out.println("\nAnt Colony Optimized order of cloud#s for this request: ");
+                
+                for(int i=0;i<5;i++)
+                {
+                	System.out.println("Cloud# "+bestDistance.way[i]);
+                }
+                
+            	int availableCloud[]={0,0,0,0,0};
+            	int noOfAvailableClouds=0;
+            	int selectedCloud=0;
+                for(int i=0;i<5;i++)
+                {
+                	if((storage[(bestDistance.way[i]-1)] >= request.getStorageQuantity())&&
+                		(OS[(bestDistance.way[i]-1)] == request.getCpuQuantity().getOperatingSystem())&&
+                		(bitsOfOs[(bestDistance.way[i]-1)] == request.getCpuQuantity().getBitsOfOS())&&
+                		(ramQuantity[(bestDistance.way[i]-1)] >= request.getCpuQuantity().getRamQuantity())&&
+                		(networkBW[(bestDistance.way[i]-1)] >= request.getNetworkQuantity()))
+                	{
+                		//System.out.println("i = "+i+" cloud# "+bestDistance.way[i]);
+                		//System.out.println("noOfAvailableClouds: "+noOfAvailableClouds);
+                		availableCloud[noOfAvailableClouds] = bestDistance.way[i];
+                		noOfAvailableClouds++;
+                	}
+                }
+                
+                //System.out.println("Cloud#s which can have the requested resources: "+Arrays.toString(availableCloud));
+                System.out.println("\nCloud#s which can have the requested resources: ");
+                for(int i=0;i<5;i++)
+                {
+                	if(availableCloud[i]==0)
+                		break;
+                	System.out.println("Cloud# "+availableCloud[i]);
+                }
+                selectedCloud = availableCloud[0];
+                System.out.println("\nLoad balancing ...");
+                for(int i=1;i<=4;i++)
+                {
+                	if(availableCloud[i] == 0)
+                		break;
+                	//System.out.println("i= "+i+ " \navailableCloud[i]-1 = "+ (availableCloud[i]-1));
+                	if(noOfRequests[(availableCloud[i]-1)] < noOfRequests[selectedCloud-1])
+                	{
+                		selectedCloud = availableCloud[i];
+                		//System.out.println("selected cloud is now: "+selectedCloud);
+                	}
+                }
+                
+                if(selectedCloud==0)
+                	System.out.println("Requested resources not available in cloud");
+                else
+                {
+            		storage[(selectedCloud-1)] =- request.getStorageQuantity();
+            		ramQuantity[(selectedCloud-1)] =- request.getCpuQuantity().getRamQuantity();
+            		networkBW[(selectedCloud-1)] =- request.getNetworkQuantity();
+            		noOfRequests[selectedCloud-1]++;
+            		System.out.println("\nMobile Request# " + request.getRequestIdentfier()+" is allocated to cloud# "+ selectedCloud);
+                }
+                	
                 return bestDistance.distance;
 
         }
@@ -262,7 +332,7 @@ public final class AntColony {
                 long start = System.currentTimeMillis();
                 AntColony AntColony = new AntColony();
                 AntColony.start();
-                System.out.println("Took: " + (System.currentTimeMillis() - start) + " ms!");
+                //System.out.println("Took: " + (System.currentTimeMillis() - start) + " ms!"); chris
         }
 
 }
