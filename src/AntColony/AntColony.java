@@ -15,20 +15,19 @@ import java.util.concurrent.Executors;
 
 import cern.jet.random.*;
 
-public final class AntColony {
+public class AntColony {
 
-    	// Create a mobile service request chris
-    	public static CpuRequest cpu = new CpuRequest("Ubuntu", 64, 1);
-    	public static Location loc = new Location(47,122);
-    	public static MobileRequest request = new MobileRequest(1,10,cpu,20,loc);
-		
-    	//Available Resources in each cloud chris
+	//public static CpuRequest cpu = new CpuRequest("Ubuntu", 64, 1);
+	//public static Location loc = new Location(42,71);
+	//public static MobileRequest request = new MobileRequest(1,10,cpu,20,loc);
+	
+		//Available Resources in each cloud chris
     	public static int storage[]={500,500,500,500,500};
     	public static String OS[] = {"Ubuntu","Ubuntu","Ubuntu","Ubuntu","Ubuntu"};
-    	public static int bitsOfOs[] = {32,64,64,64,64};
+    	public static int bitsOfOs[] = {32,64,64,32,64};
     	public static int ramQuantity[] = {50,50,50,50,50};
     	public static int networkBW[] = {250,250,250,250,250};
-    	public static int noOfRequests[] = {0,10,0,0,0};
+    	public static int noOfRequests[] = {0,0,0,0,0};
     	
     	// greedy
         public static final double ALPHA = -0.2d;
@@ -55,9 +54,11 @@ public final class AntColony {
         final double[][] invertedMatrix;
         private final double[][] pheromones;
         private final Object[][] mutexes;
+        public MobileRequest request;
 
-        public AntColony() throws IOException {
-                // read the matrix
+        public AntColony(MobileRequest request) throws IOException {
+        	// read the matrix
+        	    this.request = request;
                 matrix = readMatrixFromFile();
                 invertedMatrix = invertMatrix();
                 pheromones = initializePheromones();
@@ -157,14 +158,16 @@ public final class AntColony {
                 final double[][] localMatrix = new double[records.size()][records.size()];
                 int replace = 0;
                 int rIndex = 0;
+
                 for (Record r : records) {
                         int hIndex = 0;
                         for (Record h : records) {
                         		if(replace == 0) {
-                        			r.x = loc.getLatitude();
-                        			r.y = loc.getLongitude();
-                        			h.x = loc.getLatitude();
-                        			h.y = loc.getLongitude();
+                        			System.out.println("Location is "+request.getLocation().getLatitude()+" "+request.getLocation().getLongitude());
+                        			r.x = request.getLocation().getLatitude();
+                        			r.y = request.getLocation().getLongitude();
+                        			h.x = request.getLocation().getLatitude();
+                        			h.y = request.getLocation().getLongitude();
                         			replace = 1;
                         		}
                                 localMatrix[rIndex][hIndex] = calculateEuclidianDistance(r.x, r.y, h.x, h.y);
@@ -251,7 +254,7 @@ public final class AntColony {
                 for(int i=0;i<5;i++)
                 {
                 	if((storage[(bestDistance.way[i]-1)] >= request.getStorageQuantity())&&
-                		(OS[(bestDistance.way[i]-1)] == request.getCpuQuantity().getOperatingSystem())&&
+                		(OS[(bestDistance.way[i]-1)].equals(request.getCpuQuantity().getOperatingSystem()))&&
                 		(bitsOfOs[(bestDistance.way[i]-1)] == request.getCpuQuantity().getBitsOfOS())&&
                 		(ramQuantity[(bestDistance.way[i]-1)] >= request.getCpuQuantity().getRamQuantity())&&
                 		(networkBW[(bestDistance.way[i]-1)] >= request.getNetworkQuantity()))
@@ -264,7 +267,7 @@ public final class AntColony {
                 }
                 
                 //System.out.println("Cloud#s which can have the requested resources: "+Arrays.toString(availableCloud));
-                System.out.println("\nCloud#s which can have the requested resources: ");
+                System.out.println("\nCloud#s which have the requested resources: ");
                 for(int i=0;i<5;i++)
                 {
                 	if(availableCloud[i]==0)
@@ -325,14 +328,4 @@ public final class AntColony {
                         this.distance = distance;
                 }
         }
-
-        public static void main(String[] args) throws IOException, InterruptedException,
-                        ExecutionException {
-
-                long start = System.currentTimeMillis();
-                AntColony AntColony = new AntColony();
-                AntColony.start();
-                //System.out.println("Took: " + (System.currentTimeMillis() - start) + " ms!"); chris
-        }
-
 }
