@@ -1,4 +1,4 @@
-NAME: berlin52
+NAME: cloud5
 TYPE: TSP
 COMMENT: 5 locations in US
 DIMENSION: 5

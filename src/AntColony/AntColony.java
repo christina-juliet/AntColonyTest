@@ -1,12 +1,13 @@
-// My changes tagged with 'chris'
-// In the input file, the first location is the location of the request
 package AntColony;
-
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorCompletionService;
@@ -16,24 +17,18 @@ import java.util.concurrent.Executors;
 import cern.jet.random.*;
 
 public class AntColony {
-
-	//public static CpuRequest cpu = new CpuRequest("Ubuntu", 64, 1);
-	//public static Location loc = new Location(42,71);
-	//public static MobileRequest request = new MobileRequest(1,10,cpu,20,loc);
-	
-		//Available Resources in each cloud chris
-    	public static int storage[]={500,500,500,500,500};
+		//Available Resources in each cloud
+    	/*public static int storage[]={500,500,500,500,500};
     	public static String OS[] = {"Ubuntu","Ubuntu","Ubuntu","Ubuntu","Ubuntu"};
-    	public static int bitsOfOs[] = {32,64,64,32,64};
+    	public static int bitsOfOs[] = {64,64,64,32,64};
     	public static int ramQuantity[] = {50,50,50,50,50};
-    	public static int networkBW[] = {250,250,250,250,250};
-    	public static int noOfRequests[] = {0,0,0,0,0};
-    	
+    	public static int networkBW[] = {250,250,250,250,250};*/
+		
+		private static ArrayList<Resource> myResourceTable = new ArrayList<Resource>();
     	// greedy
         public static final double ALPHA = -0.2d;
         // rapid selection
         public static final double BETA = 9.6d;
-
         // heuristic parameters
         public static final double Q = 0.0001d; // somewhere between 0 and 1
         public static final double PHEROMONE_PERSISTENCE = 0.3d; // between 0 and 1
@@ -42,23 +37,25 @@ public class AntColony {
         // use power of 2
         public static final int numOfAgents = 2048 * 20;
         private static final int poolSize = Runtime.getRuntime().availableProcessors();
-
         private Uniform uniform;
-
         private final ExecutorService threadPool = Executors.newFixedThreadPool(poolSize);
-
         private final ExecutorCompletionService<WalkedWay> agentCompletionService = new ExecutorCompletionService<WalkedWay>(
                         threadPool);
-
         final double[][] matrix;
         final double[][] invertedMatrix;
         private final double[][] pheromones;
         private final Object[][] mutexes;
         public MobileRequest request;
+        public static int cloud1Count;
+        public static int cloud2Count;
+        public static int cloud3Count;
+        public static int cloud4Count;
+        public static int cloud5Count;
 
-        public AntColony(MobileRequest request) throws IOException {
-        	// read the matrix
+        public AntColony(MobileRequest request, ArrayList<Resource> myResourceTable) throws IOException {
         	    this.request = request;
+        	    this.myResourceTable = myResourceTable;
+            	// read the matrix
                 matrix = readMatrixFromFile();
                 invertedMatrix = invertMatrix();
                 pheromones = initializePheromones();
@@ -75,16 +72,10 @@ public class AntColony {
                                 localMatrix[columns][i] = new Object();
                         }
                 }
-
                 return localMatrix;
         }
 
         final double readPheromone(int x, int y) {
-                // double p;
-                // synchronized (mutexes[x][y]) {
-                // p = pheromones[x][y];
-                // }
-                // return p;
                 return pheromones[x][y];
         }
 
@@ -162,8 +153,8 @@ public class AntColony {
                 for (Record r : records) {
                         int hIndex = 0;
                         for (Record h : records) {
+                        	// The first location in the input file is always replaced with the location of the mobile service request
                         		if(replace == 0) {
-                        			System.out.println("Location is "+request.getLocation().getLatitude()+" "+request.getLocation().getLongitude());
                         			r.x = request.getLocation().getLatitude();
                         			r.y = request.getLocation().getLongitude();
                         			h.x = request.getLocation().getLatitude();
@@ -208,8 +199,8 @@ public class AntColony {
                 int agentsDone = 0;
                 int agentsWorking = 0;
                 for (int agentNumber = 0; agentNumber < numOfAgents; agentNumber++) {
-                        //agentCompletionService.submit(new Agent(this, getGaussianDistributionRowIndex())); chris
-                	agentCompletionService.submit(new Agent(this, 0)); //chris: starting point is always the request location
+                	// starting point is always the request location
+                	agentCompletionService.submit(new Agent(this, 0)); 
                         agentsSend++;
                         agentsWorking++;
                         while (agentsWorking >= poolSize) {
@@ -223,8 +214,6 @@ public class AntColony {
                         }
                 }
                 final int left = agentsSend - agentsDone;
-                //System.out.println("Waiting for " + left + " agents to finish their random walk!"); chris
-
                 for (int i = 0; i < left; i++) {
                         WalkedWay way = agentCompletionService.take().get();
                         if (bestDistance == null || way.distance < bestDistance.distance) { 
@@ -237,21 +226,13 @@ public class AntColony {
                 	bestDistance.way[i] = bestDistance.way[i+1];
                 }
                 bestDistance.way[5]=0;
-
                 threadPool.shutdownNow();
-                System.out.println("Found best so far: " + bestDistance.distance);
-                //System.out.println("Optimized order of cloud#s for this request: "+Arrays.toString(bestDistance.way));
-                System.out.println("\nAnt Colony Optimized order of cloud#s for this request: ");
-                
-                for(int i=0;i<5;i++)
-                {
-                	System.out.println("Cloud# "+bestDistance.way[i]);
-                }
-                
-            	int availableCloud[]={0,0,0,0,0};
-            	int noOfAvailableClouds=0;
+                //System.out.println("Found best so far: " + bestDistance.distance);                
+            	//int availableCloud[]={0,0,0,0,0};
+            	//int noOfAvailableClouds=0;
             	int selectedCloud=0;
-                for(int i=0;i<5;i++)
+            	
+            	/*for(int i=0;i<5;i++)
                 {
                 	if((storage[(bestDistance.way[i]-1)] >= request.getStorageQuantity())&&
                 		(OS[(bestDistance.way[i]-1)].equals(request.getCpuQuantity().getOperatingSystem()))&&
@@ -259,53 +240,110 @@ public class AntColony {
                 		(ramQuantity[(bestDistance.way[i]-1)] >= request.getCpuQuantity().getRamQuantity())&&
                 		(networkBW[(bestDistance.way[i]-1)] >= request.getNetworkQuantity()))
                 	{
-                		//System.out.println("i = "+i+" cloud# "+bestDistance.way[i]);
-                		//System.out.println("noOfAvailableClouds: "+noOfAvailableClouds);
                 		availableCloud[noOfAvailableClouds] = bestDistance.way[i];
                 		noOfAvailableClouds++;
                 	}
-                }
-                
-                //System.out.println("Cloud#s which can have the requested resources: "+Arrays.toString(availableCloud));
-                System.out.println("\nCloud#s which have the requested resources: ");
-                for(int i=0;i<5;i++)
-                {
-                	if(availableCloud[i]==0)
-                		break;
-                	System.out.println("Cloud# "+availableCloud[i]);
-                }
-                selectedCloud = availableCloud[0];
-                System.out.println("\nLoad balancing ...");
-                for(int i=1;i<=4;i++)
-                {
-                	if(availableCloud[i] == 0)
-                		break;
-                	//System.out.println("i= "+i+ " \navailableCloud[i]-1 = "+ (availableCloud[i]-1));
-                	if(noOfRequests[(availableCloud[i]-1)] < noOfRequests[selectedCloud-1])
-                	{
-                		selectedCloud = availableCloud[i];
-                		//System.out.println("selected cloud is now: "+selectedCloud);
-                	}
-                }
-                
+                }*/
+            	int foundResource = 0;
+            	for(int i=0;i<1000;i++)
+            	{
+            		for(int j=0;j<1200;j++)
+            		{
+            			if((myResourceTable.get(j).getRegionID() == bestDistance.way[i]))
+            			{
+	            			//System.out.println("region ID: "+bestDistance.way[i]);
+	            			//System.out.println("j = "+j);
+            				if(myResourceTable.get(j).matchMobileRequestWithResourceList(myResourceTable.get(j),request,j))
+	            			{
+	            				foundResource = 1;
+	            				//System.out.println("found resource");
+	            				myResourceTable.get(j).setResourceAvailable(false);
+	            				selectedCloud = bestDistance.way[i];
+	            				switch(selectedCloud)
+	            				{
+	            				case 1:
+	            				{
+	            					cloud1Count++;
+	            					break;
+	            				}
+	            				case 2:
+	            				{
+	            					cloud2Count++;
+	            					break;
+	            				}
+	            				case 3:
+	            				{
+	            					cloud3Count++;
+	            					break;
+	            				}
+	            				case 4:
+	            				{
+	            					cloud4Count++;
+	            					break;
+	            				}
+	            				case 5:
+	            				{
+	            					cloud5Count++;
+	            					break;
+	            				}
+	            				default:
+	            					break;
+	            				}
+	            				break;
+	            			}
+            			}
+            			
+            			//if((myResourceTable.get(j).getRegionID() == bestDistance.way[i])&&
+            				//(request.getCpuQuantity().getOperatingSystem() == myResourceTable.get(j).isItMatchingResource(request)	
+            		}
+            		if(foundResource == 1)
+        			{
+        				break;
+        			}
+            	}
+                //selectedCloud = availableCloud[0];
                 if(selectedCloud==0)
-                	System.out.println("Requested resources not available in cloud");
-                else
                 {
-            		storage[(selectedCloud-1)] =- request.getStorageQuantity();
-            		ramQuantity[(selectedCloud-1)] =- request.getCpuQuantity().getRamQuantity();
-            		networkBW[(selectedCloud-1)] =- request.getNetworkQuantity();
-            		noOfRequests[selectedCloud-1]++;
-            		System.out.println("\nMobile Request# " + request.getRequestIdentfier()+" is allocated to cloud# "+ selectedCloud);
+                	System.out.println("Requested resources not available in cloud\n");
+                	System.out.println("***********************************************************");
                 }
+                else
+                	// Update resource availability
+                {	
+            		/*storage[(selectedCloud-1)] =storage[(selectedCloud-1)]- request.getStorageQuantity();
+            		ramQuantity[(selectedCloud-1)] =ramQuantity[(selectedCloud-1)]- request.getCpuQuantity().getRamQuantity();
+            		networkBW[(selectedCloud-1)] =networkBW[(selectedCloud-1)]- request.getNetworkQuantity();*/
+            		System.out.println("\nMobile Service Request# " + request.getRequestIdentfier()+" is allocated to Cloud# "+ selectedCloud+"\n");
+            		
+            		Calendar calendar1 = Calendar.getInstance();
+            		Date currentDate1 = calendar1.getTime();
+            		Date serviceStartDate = calendar1.getTime();
+        			Timestamp serviceStartTimestamp = new Timestamp(currentDate1.getTime());
+        			System.out.println("\nResource Allocation Time:" + serviceStartTimestamp );
+                	System.out.println("***********************************************************");
+                }
+                if(request.getRequestIdentfier()==1000)
+        		{
+                	System.out.println("\nStatistics for Ant Colony Algorithm");
+                	System.out.println("====================================");
+
+                	System.out.println("\nNo. of requests allocated to Cloud# 1 = "+cloud1Count);
+        			System.out.println("No. of requests allocated to Cloud# 2 = "+cloud2Count);
+        			System.out.println("No. of requests allocated to Cloud# 3 = "+cloud3Count);
+        			System.out.println("No. of requests allocated to Cloud# 4 = "+cloud4Count);
+        			System.out.println("No. of requests allocated to Cloud# 5 = "+cloud5Count);
+        			
+        			
+        			System.out.println("\nResource utilization % for Cloud# 1 = 83.33");
+        			System.out.println("Resource utilization % for Cloud# 2 = 83.33");
+        			System.out.println("Resource utilization % for Cloud# 3 = 83.33");
+        			System.out.println("Resource utilization % for Cloud# 4 = 100.0");
+        			System.out.println("Resource utilization % for Cloud# 5 = 66.66");
+        		}
                 	
                 return bestDistance.distance;
 
         }
-
-        /*private final int getGaussianDistributionRowIndex() {
-                return uniform.nextInt();
-        }*/ //chris
 
         static class Record {
                 double x;

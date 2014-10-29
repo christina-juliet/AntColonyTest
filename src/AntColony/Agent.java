@@ -1,12 +1,9 @@
 package AntColony;
-
 import java.util.Random;
 import java.util.concurrent.Callable;
-
 import AntColony.AntColony.WalkedWay;
 
 public final class Agent implements Callable<WalkedWay> {
-
         private final AntColony instance;
         private double distanceWalked = 0.0d;
         private final int start;
@@ -14,9 +11,6 @@ public final class Agent implements Callable<WalkedWay> {
         public final int[] way;
         private int toVisit;
         private final Random random = new Random(System.nanoTime());
-
-        // private final Normal random = new Normal(0.0d, 1.0d, new
-        // MersenneTwister(new Date()));
 
         public Agent(AntColony instance, int start) {
                 super();
@@ -65,18 +59,16 @@ public final class Agent implements Callable<WalkedWay> {
                                     }
                             }
                     }
-
             }
             return -1;
     }
+        
         private final int calculateChoice(double[] probabilityDistr, Random rnd) {
             double rndNumber = rnd.nextDouble();
             int counter = -1;
-
             while (rndNumber > 0) {
                     rndNumber -= probabilityDistr[++counter];
             }
-
             return counter;
     }
 
@@ -94,7 +86,6 @@ public final class Agent implements Callable<WalkedWay> {
         int lastNode = start;
         int next = start;
         int i = 0;
-        //int i = 1; //chris
         while ((next = getNextProbableNode(lastNode)) != -1) {
                 way[i] = lastNode;
                 i++;
